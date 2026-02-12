@@ -122,7 +122,7 @@ function monitorInput(){
   })();
 }
 
-// ═══ RADIAL WAVEFORM — the hero visual ═══
+// ═══ RADIAL WAVEFORM — updated for cleaner UI ═══
 function drawRadial(canvas,data,active){
   if(!canvas)return;
   const ctx=canvas.getContext('2d');
@@ -130,28 +130,34 @@ function drawRadial(canvas,data,active){
   const cx=w/2,cy=h/2;
   ctx.clearRect(0,0,w,h);
 
-  const innerR=26; // radius of avatar circle
-  const maxOutR=15; // max bar extension outward
-  const bars=48;
-  const sliceAngle=2*Math.PI/bars;
+  // New design: smooth rounded bars around the avatar
+  const r=38; // Inner radius
+  const len=10; // Max length
+  const bars=40;
+  const step=Math.PI*2/bars;
+
+  ctx.lineCap='round';
+  ctx.lineWidth=2.5;
 
   for(let i=0;i<bars;i++){
-    const val=(data[i]||0)/255;
-    const barH=active?(val*maxOutR+1):1.5;
-    const angle=i*sliceAngle-Math.PI/2;
+     const bin = Math.floor(i * (data.length / bars) * 0.5);
+     const val = (data[bin]||0) / 255;
 
-    const x1=cx+Math.cos(angle)*innerR;
-    const y1=cy+Math.sin(angle)*innerR;
-    const x2=cx+Math.cos(angle)*(innerR+barH);
-    const y2=cy+Math.sin(angle)*(innerR+barH);
+     if(val < 0.05 && !active) continue;
 
-    ctx.beginPath();
-    ctx.moveTo(x1,y1);
-    ctx.lineTo(x2,y2);
-    ctx.strokeStyle=active?`rgba(46,232,176,${.3+val*.7})`:'rgba(40,47,66,.6)';
-    ctx.lineWidth=2;
-    ctx.lineCap='round';
-    ctx.stroke();
+     const l = active ? Math.max(2, val * len + 2) : 2;
+
+     const ang = i*step - Math.PI/2;
+     const x1 = cx + Math.cos(ang) * r;
+     const y1 = cy + Math.sin(ang) * r;
+     const x2 = cx + Math.cos(ang) * (r + l);
+     const y2 = cy + Math.sin(ang) * (r + l);
+
+     ctx.strokeStyle = active ? '#30d158' : 'rgba(255,255,255,0.1)';
+     ctx.beginPath();
+     ctx.moveTo(x1,y1);
+     ctx.lineTo(x2,y2);
+     ctx.stroke();
   }
 }
 
@@ -205,7 +211,7 @@ setInterval(async()=>{
   if(n>0){
     const aR=(tR/n).toFixed(0),aJ=(tJ/n).toFixed(1),aL=(tL/n).toFixed(1);
     $('stRtt').textContent=`${aR}ms`;$('stJit').textContent=`${aJ}ms`;$('stLoss').textContent=`${aL}%`;
-    $('stDot').className='st-dot'+(+aL>5?' r':+aL>1?' w':'');
+    $('stDot').className='dot'+(+aL>5?' r':+aL>1?' w':''); // Updated to .dot
     const tx=AS.sendBitrate*peers.size;let rx=0;for(const[uid]of peers){const u=roomUsers.get(uid);rx+=(u?.audioSettings?.sendBitrate||128)}
     $('stBwUp').textContent=tx>999?`${(tx/1000).toFixed(1)}M`:`${tx}k`;
     $('stBwDn').textContent=rx>999?`${(rx/1000).toFixed(1)}M`:`${rx}k`;
@@ -216,7 +222,7 @@ setInterval(async()=>{
 
 // ═══ RENDERING ═══
 function renderRooms(rooms){
-  const c=$('roomList');c.innerHTML='<div class="sb-label">Rooms</div>';
+  const c=$('roomList');c.innerHTML=''; // Clean list
   rooms.forEach(r=>{
     const el=document.createElement('div');
     el.className=`ri${currentRoom===r.id?' active':''}`;
@@ -252,9 +258,8 @@ function mkTile(uid,name,s,self,cq,mba=false){
     ${isOwn?'<div class="tile-crown">👑</div>':''}
     <div class="tile-q">${[0,1,2].map(i=>`<div class="tile-qb ${bars[i]?(pl>3?'w':'g'):(pl>5?'r':'')}"></div>`).join('')}</div>
     <div class="av-wrap">
-      <canvas class="av-radial" width="88" height="88" id="rad-${uid}"></canvas>
+      <canvas class="av-radial" width="100" height="100" id="rad-${uid}"></canvas>
       <div class="av-circle">${init}</div>
-      <div class="av-ring"></div>
       <div class="av-muted"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="1" y1="1" x2="23" y2="23"/><path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"/><path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2c0 .76-.12 1.49-.34 2.18"/><line x1="12" y1="19" x2="12" y2="23"/><line x1="8" y1="23" x2="16" y2="23"/></svg></div>
     </div>
     <div class="tile-name">${esc(name)}${self?' <span class="tile-you">(you)</span>':''}</div>
@@ -301,7 +306,7 @@ function leaveCleanup(){
   if(localStream){localStream.getTracks().forEach(t=>t.stop());localStream=null}
   $('hdrIcon').textContent='🎙';$('roomTitle').textContent='Select a room';$('roomMeta').textContent='Pick a room to join voice';
   $('statsBar').classList.remove('on');$('bottomBar').classList.remove('on');
-  $('voiceGrid').innerHTML='<div class="es" id="emptyState"><div class="es-vis"><div class="es-bar"></div><div class="es-bar"></div><div class="es-bar"></div><div class="es-bar"></div><div class="es-bar"></div><div class="es-bar"></div><div class="es-bar"></div></div><div class="es-title">Ready when you are</div><div class="es-sub">Join a room to start a voice session</div></div>';
+  $('voiceGrid').innerHTML='<div class="empty-state" id="emptyState"><h3>No one\'s here</h3><p>Join a room to start talking.</p></div>';
   $('chatBody').innerHTML='';
 }
 
@@ -343,7 +348,8 @@ $('selCh').onchange=function(){AS.channelCount=+this.value;syncS();restartA()};
 $('sGate').oninput=function(){AS.noiseGateThreshold=+this.value;$('vGate').textContent=`${this.value} dB`;syncS()};
 $('sLoss').oninput=function(){AS.packetLoss=+this.value;$('vLoss').textContent=`${this.value}%`;syncS()};
 $('selJit').onchange=function(){AS.jitterBuffer=this.value;syncS()};
-document.querySelectorAll('.tg').forEach(t=>{t.onclick=function(){this.classList.toggle('on');const k=this.dataset.k;if(k){AS[k]=this.classList.contains('on');syncS();if(['echoCancellation','noiseSuppression','autoGainControl'].includes(k))restartA()}}});
+// Updated selector for toggles (.toggle instead of .tg)
+document.querySelectorAll('.toggle').forEach(t=>{t.onclick=function(){this.classList.toggle('on');const k=this.dataset.k;if(k){AS[k]=this.classList.contains('on');syncS();if(['echoCancellation','noiseSuppression','autoGainControl'].includes(k))restartA()}}});
 
 function syncS(){send({type:'update-audio-settings',settings:AS})}
 function applyBR(){for(const[,pd]of peers)pd.pc.getSenders().forEach(s=>{if(s.track?.kind==='audio'){const p=s.getParameters();if(!p.encodings)p.encodings=[{}];p.encodings[0].maxBitrate=AS.sendBitrate*1000;s.setParameters(p).catch(()=>{})}})}
@@ -366,14 +372,15 @@ function submitNewRoom(){const n=$('nrName').value.trim();if(!n)return;send({typ
 $('nrName').onkeydown=e=>{if(e.key==='Enter')submitNewRoom()};
 $('pwSubmit').onclick=()=>{if(pendingJoin){send({type:'join-room',roomId:pendingJoin,password:$('pwInput').value});closeModals()}};
 $('pwInput').onkeydown=e=>{if(e.key==='Enter')$('pwSubmit').click()};
-document.querySelectorAll('.mbg').forEach(bg=>{bg.addEventListener('click',e=>{if(e.target===bg)closeModals()})});
+// Updated selector for modals (.modal-overlay instead of .mbg)
+document.querySelectorAll('.modal-overlay').forEach(bg=>{bg.addEventListener('click',e=>{if(e.target===bg)closeModals()})});
 
 // ═══ BOOT ═══
 $('joinBtn').onclick=enterApp;
 $('nameInput').onkeydown=e=>{if(e.key==='Enter')enterApp()};
 function enterApp(){
   const n=$('nameInput').value.trim();
-  if(!n){$('nameInput').style.borderColor='var(--rd)';$('nameInput').focus();return}
+  if(!n){$('nameInput').style.borderColor='var(--accent-red)';$('nameInput').focus();return}
   myName=n;$('onboarding').style.display='none';$('app').style.display='flex';
   connectWS();enumDevs();
   const iv=setInterval(()=>{if(ws?.readyState===1){send({type:'set-name',displayName:myName});clearInterval(iv)}},100);
