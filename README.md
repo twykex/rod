@@ -128,12 +128,30 @@ Then add TURN credentials to `rtcCfg` in `index.html`.
 
 ```
 voxlink/
-├── server.js        # v2 signaling server
+├── server.js        # Application entry point
 ├── package.json
 ├── setup.sh         # Debian auto-deploy
 ├── README.md
-└── public/
-    └── index.html   # Complete SPA frontend
+├── public/
+│   ├── index.html   # HTML structure
+│   ├── css/
+│   │   └── style.css # Application styles
+│   └── js/
+│       └── app.js    # Client-side logic
+└── src/
+    ├── config.js    # Configuration constants
+    ├── state.js     # In-memory global state
+    ├── models/
+    │   ├── ClientState.js
+    │   └── Room.js
+    ├── services/
+    │   ├── roomService.js
+    │   ├── clientService.js
+    │   └── broadcastService.js
+    ├── handlers/
+    │   └── messageHandler.js
+    └── routes/
+        └── api.js
 ```
 
 ## License
