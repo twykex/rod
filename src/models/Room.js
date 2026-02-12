@@ -5,7 +5,7 @@ class Room {
   constructor(id, name, opts = {}) {
     this.id = id; this.name = name;
     this.password = opts.password || null;
-    this.capacity = Math.min(opts.capacity || CONFIG.defaultCapacity, CONFIG.maxCapacity);
+    this.capacity = Math.min(Math.max(2, opts.capacity || CONFIG.defaultCapacity), CONFIG.maxCapacity);
     this.ownerId = opts.ownerId || null;
     this.createdAt = Date.now();
     this.users = new Map(); this.chat = [];

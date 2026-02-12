@@ -14,9 +14,12 @@ function handle(c, m) {
     case 'create-room': {
       const n = (m.name || '').trim().slice(0, 48);
       if (!n) { c.send({ type: 'error', message: 'Name required' }); break; }
-      const r = makeRoom(n, { password: m.password || null, capacity: m.capacity || CONFIG.defaultCapacity, ownerId: c.userId, description: m.description || '', icon: m.icon || '🎙' });
+      const pw = (typeof m.password === 'string') ? m.password : null;
+      const r = makeRoom(n, { password: pw, capacity: m.capacity || CONFIG.defaultCapacity, ownerId: c.userId, description: m.description || '', icon: m.icon || '🎙' });
       if (!r) { c.send({ type: 'error', message: 'Max rooms reached' }); break; }
-      pushRooms(); c.send({ type: 'room-created', roomId: r.id }); break;
+      pushRooms();
+      handle(c, { type: 'join-room', roomId: r.id, password: pw });
+      break;
     }
     case 'delete-room': {
       const r = rooms.get(m.roomId);
