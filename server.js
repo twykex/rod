@@ -38,6 +38,7 @@ wss.on('connection', (ws) => {
 
   ws.on('message', raw => {
     let m; try { m = JSON.parse(raw); } catch { return; }
+    if (!m || typeof m !== 'object') return;
     if (!c.rateOk()) { c.send({ type: 'error', code: 'RATE_LIMIT', message: 'Slow down' }); return; }
     handle(c, m);
   });

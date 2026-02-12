@@ -5,8 +5,11 @@ const CONFIG = require('../config');
 
 function makeRoom(name, opts = {}) {
   if (rooms.size >= CONFIG.maxRooms) return null;
-  let id = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 48) || uuidv4().slice(0, 8);
-  if (rooms.has(id)) id += '-' + uuidv4().slice(0, 4);
+  let baseId = name.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-').slice(0, 48) || uuidv4().slice(0, 8);
+  let id = baseId;
+  while (rooms.has(id)) {
+    id = baseId + '-' + uuidv4().slice(0, 4);
+  }
   const r = new Room(id, name || id, opts);
   rooms.set(id, r); return r;
 }
